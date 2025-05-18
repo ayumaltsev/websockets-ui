@@ -22,7 +22,6 @@ wss.on('connection', (ws) => {
             let player = players.find(p => p.name === name);
 
             if (!player) {
-                // create new player
                 player = {name, password, index: players.length + 1};
                 players.push(player);
                 ws.send(JSON.stringify({
@@ -32,7 +31,6 @@ wss.on('connection', (ws) => {
                 }));
                 console.log(`Player ${name} registered`);
             } else if (player.password === password) {
-                // succeed
                 ws.send(JSON.stringify({
                     type: "reg",
                     data: {name, index: player.index, error: false, errorText: ""},
@@ -40,7 +38,6 @@ wss.on('connection', (ws) => {
                 }));
                 console.log(`Player ${name} is authorized succeed`);
             } else {
-                // wrong password
                 ws.send(JSON.stringify({
                     type: "reg",
                     data: {name, index: "", error: true, errorText: "Invalid password"},
@@ -84,8 +81,7 @@ wss.on('connection', (ws) => {
                 }));
                 console.log(`Error: Room ${indexRoom} is full`);
             } else {
-                // room.players.push({ws});
-                room.players.push({ name: data.name, ws });
+                room.players.push({name: data.name, ws});
 
                 ws.send(JSON.stringify({
                     type: "add_user_to_room",
@@ -102,6 +98,43 @@ wss.on('connection', (ws) => {
                     })));
                     console.log(`Game is started in room ${indexRoom}`);
                 }
+            }
+        }
+
+        // SHIPS PLACEMENT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        if (data.type === "add_ships") {
+            const {gameId, ships, indexPlayer} = data.data;
+            const room = rooms.find(r => r.roomId === gameId);
+
+            if (!room) {
+                ws.send(JSON.stringify({
+                    type: "add_ships",
+                    data: {status: "error", message: "Room not found"},
+                    id: 0
+                }));
+                console.log(`Error: room ${gameId} not found.`);
+                return;
+            }
+
+            if (!room.ships) {
+                room.ships = {};
+            }
+
+            room.ships[indexPlayer] = ships;
+            ws.send(JSON.stringify({
+                type: "add_ships",
+                data: {status: "success", message: "Ships placed successfully"},
+                id: 0
+            }));
+            console.log(`Player ${indexPlayer} placed ships in room ${gameId}`);
+
+            if (Object.keys(room.ships).length === 2) {
+                room.players.forEach(p => p.ws.send(JSON.stringify({
+                    type: "start_game",
+                    data: {ships: room.ships[p.name], currentPlayerIndex: p.name},
+                    id: 0
+                })));
+                console.log(`Game is started in room ${gameId}`);
             }
         }
 
