@@ -192,14 +192,16 @@ wss.on('connection', (ws) => {
                 checkGameOver(room);
             }
 
-            if (!hit) {
-                room.currentTurn = opponent.name;
+            if (!checkGameOver(room)) {
+                if (!hit) {
+                    room.currentTurn = opponent.name;
+                }
+                sendTurn(room);
             }
 
-            sendTurn(room);
         }
     });
-    
+
     function sendTurn(room) {
         room.players.forEach(p => p.ws.send(JSON.stringify({
             type: "turn",
@@ -210,7 +212,8 @@ wss.on('connection', (ws) => {
 
     function checkGameOver(room) {
         const opponent = room.players.find(p => p.name !== room.currentTurn);
-        if (room.ships[opponent.name].every(ship => ship.length === 0)) {
+        const allShipsDestroyed = room.ships[opponent.name].every(ship => ship.damage && ship.damage.length === ship.length);
+        if (allShipsDestroyed) {
             room.players.forEach(p => p.ws.send(JSON.stringify({
                 type: "finish",
                 data: {winPlayer: room.currentTurn},
