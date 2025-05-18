@@ -135,11 +135,62 @@ wss.on('connection', (ws) => {
                     id: 0
                 })));
                 console.log(`Game is started in room ${gameId}`);
+
+                room.currentTurn = room.players[0].name; // First player starts game
             }
         }
 
+        if (data.type === "attack") {
+            const {gameId, x, y, indexPlayer} = data.data;
+            const room = rooms.find(r => r.roomId === gameId);
 
+            if (!room || room.currentTurn !== indexPlayer) {
+                ws.send(JSON.stringify({
+                    type: "attack",
+                    data: {status: "error", message: "Not your turn!"},
+                    id: 0
+                }));
+                return;
+            }
+
+            const opponent = room.players.find(p => p.name !== indexPlayer);
+            const ships = room.ships[opponent.name];
+
+            let hit = false, killed = false;
+
+            ships.forEach(ship => {
+                if (ship.position.x === x && ship.position.y === y) {
+                    hit = true;
+                    ship.length--;
+
+                    if (ship.length === 0) {
+                        killed = true;
+                    }
+                }
+            });
+
+            const status = killed ? "killed" : hit ? "shot" : "miss";
+            ws.send(JSON.stringify({
+                type: "attack",
+                data: {position: {x, y}, currentPlayer: indexPlayer, status},
+                id: 0
+            }));
+
+            if (!hit) {
+                room.currentTurn = opponent.name; //another player shoot
+            }
+
+            sendTurn(room);
+        }
     });
+
+    function sendTurn(room) {
+        room.players.forEach(p => p.ws.send(JSON.stringify({
+            type: "turn",
+            data: {currentPlayer: room.currentTurn},
+            id: 0
+        })));
+    }
 
     ws.on('close', () => {
         console.log('Player switched off');
