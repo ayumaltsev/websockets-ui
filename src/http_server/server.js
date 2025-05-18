@@ -7,6 +7,7 @@ console.log(`WebSocket server started on port ${PORT}`);
 
 const players = [];
 const rooms = [];
+const winners = [];
 
 wss.on('connection', (ws) => {
     console.log('New player connected');
@@ -96,7 +97,7 @@ wss.on('connection', (ws) => {
                         data: {idGame: indexRoom},
                         id: 0
                     })));
-                    console.log(`Game is started in room ${indexRoom}`);
+                    console.log(`Both players already are in room ${indexRoom}`);
                 }
             }
         }
@@ -188,17 +189,19 @@ wss.on('connection', (ws) => {
                 id: 0
             }));
 
+            let gameOver;
             if (killed) {
-                checkGameOver(room);
+                gameOver = checkGameOver(room);
             }
 
-            if (!checkGameOver(room)) {
+            if (!gameOver) {
                 if (!hit) {
                     room.currentTurn = opponent.name;
                 }
                 sendTurn(room);
+            } else {
+                return;
             }
-
         }
     });
 
@@ -219,8 +222,30 @@ wss.on('connection', (ws) => {
                 data: {winPlayer: room.currentTurn},
                 id: 0
             })));
+
+            let winner = winners.find(w => w.name === room.currentTurn);
+            if (winner) {
+                winner.wins++;
+            } else {
+                winners.push({name: room.currentTurn, wins: 1});
+            }
+
+            winners.sort((a, b) => b.wins - a.wins);
+
+            wss.clients.forEach(client => {
+                client.send(JSON.stringify({
+                    type: "update_winners",
+                    data: winners,
+                    id: 0
+                }));
+            });
+
             console.log(`Player ${room.currentTurn} has won in room ${room.roomId}`);
+            console.log(`Updated winners table sent to everyone`);
+
+            return true;
         }
+        return false;
     }
 
     ws.on('close', () => {
