@@ -176,6 +176,10 @@ wss.on('connection', (ws) => {
                 id: 0
             }));
 
+            if (killed) {
+                checkGameOver(room);
+            }
+
             if (!hit) {
                 room.currentTurn = opponent.name; //another player shoot
             }
@@ -190,6 +194,18 @@ wss.on('connection', (ws) => {
             data: {currentPlayer: room.currentTurn},
             id: 0
         })));
+    }
+
+    function checkGameOver(room) {
+        const opponent = room.players.find(p => p.name !== room.currentTurn);
+        if (room.ships[opponent.name].every(ship => ship.length === 0)) {
+            room.players.forEach(p => p.ws.send(JSON.stringify({
+                type: "finish",
+                data: {winPlayer: room.currentTurn},
+                id: 0
+            })));
+            console.log(`Player ${room.currentTurn} has won in room ${room.roomId}`);
+        }
     }
 
     ws.on('close', () => {
