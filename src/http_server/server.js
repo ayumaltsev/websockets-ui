@@ -81,7 +81,7 @@ wss.on('connection', (ws) => {
                 }));
                 console.log(`Error: Room ${indexRoom} is full`);
             } else {
-                room.players.push({name: data.name, ws});
+                room.players.push({name: data.data.name, ws});
 
                 ws.send(JSON.stringify({
                     type: "add_user_to_room",
@@ -134,9 +134,10 @@ wss.on('connection', (ws) => {
                     data: {ships: room.ships[p.name], currentPlayerIndex: p.name},
                     id: 0
                 })));
-                console.log(`Game is started in room ${gameId}`);
 
                 room.currentTurn = room.players[0].name; // First player starts game
+
+                console.log(`Game is started in room ${gameId}`);
             }
         }
 
@@ -157,19 +158,30 @@ wss.on('connection', (ws) => {
             const ships = room.ships[opponent.name];
 
             let hit = false, killed = false;
-
             ships.forEach(ship => {
-                if (ship.position.x === x && ship.position.y === y) {
-                    hit = true;
-                    ship.length--;
+                const {position, direction, length} = ship;
 
-                    if (ship.length === 0) {
-                        killed = true;
+                const shipCells = [];
+                for (let i = 0; i < length; i++) {
+                    shipCells.push(direction
+                        ? {x: position.x + i, y: position.y}  // horizontal ship
+                        : {x: position.x, y: position.y + i}  // vertical ship
+                    );
+                }
+
+                if (shipCells.some(cell => cell.x === x && cell.y === y)) {
+                    hit = true;
+
+                    // Damage cell
+                    if (!ship.damage) ship.damage = [];
+                    if (!ship.damage.some(cell => cell.x === x && cell.y === y)) {
+                        ship.damage.push({x, y});
                     }
+                    killed = ship.damage.length === length;
                 }
             });
-
             const status = killed ? "killed" : hit ? "shot" : "miss";
+
             ws.send(JSON.stringify({
                 type: "attack",
                 data: {position: {x, y}, currentPlayer: indexPlayer, status},
@@ -181,13 +193,13 @@ wss.on('connection', (ws) => {
             }
 
             if (!hit) {
-                room.currentTurn = opponent.name; //another player shoot
+                room.currentTurn = opponent.name;
             }
 
             sendTurn(room);
         }
     });
-
+    
     function sendTurn(room) {
         room.players.forEach(p => p.ws.send(JSON.stringify({
             type: "turn",
