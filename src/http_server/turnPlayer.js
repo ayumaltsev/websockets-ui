@@ -4,6 +4,12 @@ function sendTurn(room) {
         data: {currentPlayer: room.currentTurn},
         id: 0
     })));
+
+    console.log("Result: " + JSON.stringify({
+        type: "turn",
+        data: {currentPlayer: room.currentTurn},
+        id: 0
+    }));
 }
 
 export default {sendTurn}

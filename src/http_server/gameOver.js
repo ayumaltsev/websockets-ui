@@ -8,6 +8,12 @@ function checkGameOver(room, winners, wss) {
             id: 0
         })));
 
+        console.log("Result: " + JSON.stringify({
+            type: "finish",
+            data: {winPlayer: room.currentTurn},
+            id: 0
+        }));
+
         let winner = winners.find(w => w.name === room.currentTurn);
         if (winner) {
             winner.wins++;
@@ -27,6 +33,11 @@ function checkGameOver(room, winners, wss) {
 
         console.log(`Player ${room.currentTurn} has won in room ${room.roomId}`);
         console.log(`Updated winners table sent to everyone`);
+        console.log(JSON.stringify({
+            type: "update_winners",
+            data: winners,
+            id: 0
+        }));
 
         room.players = [];
         room.ships = null;

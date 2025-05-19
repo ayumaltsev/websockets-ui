@@ -51,6 +51,12 @@ wss.on('connection', (ws) => {
                     data: {status: "error", message: "Not your turn!"},
                     id: 0
                 }));
+
+                console.log("Result: " + JSON.stringify({
+                    type: "attack",
+                    data: {status: "error", message: "Not your turn!"},
+                    id: 0
+                }));
                 return;
             }
 
@@ -82,6 +88,12 @@ wss.on('connection', (ws) => {
             const status = killed ? "killed" : hit ? "shot" : "miss";
 
             ws.send(JSON.stringify({
+                type: "attack",
+                data: {position: {x, y}, currentPlayer: indexPlayer, status},
+                id: 0
+            }));
+
+            console.log("Result: " + JSON.stringify({
                 type: "attack",
                 data: {position: {x, y}, currentPlayer: indexPlayer, status},
                 id: 0
