@@ -116,7 +116,7 @@ wss.on('connection', (ws) => {
     });
 
     ws.on('close', () => {
-        console.log('Player switched off. Current number of connections: ${wss.clients.size}');
+        console.log(`Player switched off. Current number of connections: ${wss.clients.size}`);
     });
 
     process.on("SIGINT", () => {
