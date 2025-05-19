@@ -1,4 +1,4 @@
-import WebSocket, {WebSocketServer} from 'ws';
+import {WebSocketServer} from 'ws';
 import turnPlayer from './turnPlayer.js';
 import reg from './registration.js';
 import room from './room.js';
@@ -8,14 +8,17 @@ import go from './gameOver.js';
 const PORT = 8080;
 const wss = new WebSocketServer({port: PORT});
 
-console.log(`WebSocket server started on port ${PORT}`);
-
 const players = [];
 const rooms = [];
 const winners = [];
 
+wss.on("listening", () => {
+    console.log(`WebSocket server started on port ${wss.options.port}`);
+    console.log(`Current number of connections: ${wss.clients.size}`);
+});
+
 wss.on('connection', (ws) => {
-    console.log('New player connected');
+    console.log(`New player connected! Current number of connections: ${wss.clients.size}`);
 
     ws.on('message', (message) => {
 
@@ -101,6 +104,16 @@ wss.on('connection', (ws) => {
     });
 
     ws.on('close', () => {
-        console.log('Player switched off');
+        console.log('Player switched off. Current number of connections: ${wss.clients.size}');
     });
+
+    process.on("SIGINT", () => {
+        console.log("Shutting down the WebSocket server...");
+        wss.clients.forEach(client => client.close());
+        wss.close(() => {
+            console.log("Server is closed");
+            process.exit(0);
+        });
+    });
+
 });
